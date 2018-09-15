@@ -19,7 +19,8 @@ contract StateMachineStorage is Ownable {
     struct State {
         uint256 id;
         string name;
-        Transition[] transitions;
+        string[] autoTransitions;
+        mapping(string => Transition) transitions;
     }
 
     mapping(uint256 => State) public states;
