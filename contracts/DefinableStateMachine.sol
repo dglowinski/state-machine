@@ -14,10 +14,13 @@ contract DefinableStateMachine is StateMachineStorage {
     function addState(uint256 _id, string _name) external onlyOwner {
         require(_id != 0, "Id 0 not allowed");
         require(states[_id].id == 0, "State already exists");
+        
         states[_id] = State(_id, _name, new string[](0));
+        if(stateId == 0) stateId = _id;
     }
 
     function deleteState(uint256 _id) external onlyOwner {
+        require(stateId != _id, "Can't delete current state");
         delete states[_id];
     }
 
@@ -30,11 +33,12 @@ contract DefinableStateMachine is StateMachineStorage {
         bytes32 _triggerSignature,
         uint256 _nextStateId,
         bool _auto
-    ) external onlyOwner onlyIfStateExists(_stateId) {
+    ) 
+        external 
+        onlyOwner 
+        onlyIfStateExists(_stateId) 
+    {
         require(bytes(_name).length > 0, "Transition name required");
-        require(_conditionContract != address(0), "Condition contract required");
-        require(_triggerContract != address(0), "Trigger contract required");
-
         require(bytes(states[_stateId].transitions[_name].name).length == 0, "Transition already exists");
         
         states[_stateId].transitions[_name] = Transition({
@@ -50,15 +54,21 @@ contract DefinableStateMachine is StateMachineStorage {
 
     function deleteTransition(uint256 _stateId, string _name) external onlyOwner {
         State storage state = states[_stateId];
+
         if(state.transitions[_name].auto) {
             uint256 autoIndex;
             for(uint256 i = 0; i < state.autoTransitions.length; i++) {
-                if(keccak256(state.autoTransitions[i]) == keccak256(_name) ) 
+                if(keccak256(bytes(state.autoTransitions[i])) == keccak256(bytes(_name))) 
                     autoIndex = i;
             }
+
             state.autoTransitions[i] = state.autoTransitions[state.autoTransitions.length - 1];
             state.autoTransitions.length -= 1;
         }
         delete state.transitions[_name];
+    }
+
+    function getCurrentStateName() external view returns(string) {
+        return states[stateId].name;
     }
 }

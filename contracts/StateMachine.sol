@@ -2,6 +2,17 @@ pragma solidity ^0.4.24;
 
 import "./DefinableStateMachine.sol";
 
+//TODO
+// comments
+// format
+// solium
+// events
+// change condition signature to data
+// add data to transition trigger
+// warnings
+// update solidity
+// update truffle
+
 contract StateMachine is DefinableStateMachine {
 
     function transition(string _name) public returns (bool) {
@@ -22,8 +33,10 @@ contract StateMachine is DefinableStateMachine {
     }
 
     function executeTransition(Transition _transition) internal returns (bool) {
-        if(executeCall(_transition.condition)) {
-            executeCall(_transition.trigger);
+        if(_transition.condition.contractAddress == address(0) || executeCall(_transition.condition)) {
+            if(_transition.trigger.contractAddress != address(0)) 
+                executeCall(_transition.trigger);
+
             stateId = _transition.nextStateId;
 
             executeAutoTransition();

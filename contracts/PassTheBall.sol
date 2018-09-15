@@ -6,11 +6,11 @@ contract PassTheBall is StateMachineStorage {
     
     uint256 internal constant gameDuration = 5;
 
-    bytes32 internal constant startBlockSlot = keccak256("pdb_startBlock");
+    bytes32 internal constant startBlockSlot = keccak256("ptb_startBlock");
 
-    bytes32 internal constant passesASlot = keccak256("pdb_passesA");
-    bytes32 internal constant passesBSlot = keccak256("pdb_passesB");
-    bytes32 internal constant passesCSlot = keccak256("pdb_passesC");
+    bytes32 internal constant passesASlot = keccak256("ptb_passesA");
+    bytes32 internal constant passesBSlot = keccak256("ptb_passesB");
+    bytes32 internal constant passesCSlot = keccak256("ptb_passesC");
 
     //triggers
     function startGame() public {
@@ -36,30 +36,20 @@ contract PassTheBall is StateMachineStorage {
     }
 
     //conditions
-    function timeOut() {
+    function timeOut() public view {
         require(block.number - getVar(startBlockSlot) > gameDuration, "Game ended");
     }
 
-    function canPassToA() public {
+    function canPassToA() public view {
         require(passAllowed(getVar(passesASlot)+1, getVar(passesBSlot), getVar(passesCSlot)), "Pass not allowed");
     }
 
-    function canPassToB() public {
+    function canPassToB() public view {
         require(passAllowed(getVar(passesASlot), getVar(passesBSlot)+1, getVar(passesCSlot)), "Pass not allowed");
     }
 
-    function canPassToC() public {
+    function canPassToC() public view {
         require(passAllowed(getVar(passesASlot), getVar(passesBSlot), getVar(passesCSlot)+1), "Pass not allowed");
-    }
-
-    function passAllowed(uint256 _a, uint256 _b, uint256 _c) internal pure returns (bool) {
-        uint256 max = _a;
-        uint256 min = _a;
-        if(_b > max) max = _b; else min = _b;
-        if(_c > max) max = _c;
-        if(_c < min) min = _c;
-
-        return max - min < 3;
     }
 
     //storage
@@ -75,5 +65,15 @@ contract PassTheBall is StateMachineStorage {
         assembly {
             _passes := sload(slot)
         }
+    }
+
+    function passAllowed(uint256 _a, uint256 _b, uint256 _c) internal pure returns (bool) {
+        uint256 max = _a;
+        uint256 min = _a;
+        if(_b > max) max = _b; else min = _b;
+        if(_c > max) max = _c;
+        if(_c < min) min = _c;
+
+        return max - min < 3;
     }
 }
