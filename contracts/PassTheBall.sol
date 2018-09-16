@@ -63,7 +63,7 @@ contract PassTheBall is StateMachineStorage {
 
     function getVar(bytes32 _slot) internal view returns(uint256 _passes) {
         bytes32 slot = _slot;
-
+        // solium-disable-next-line security/no-inline-assembly
         assembly {
             _passes := sload(slot)
         }
