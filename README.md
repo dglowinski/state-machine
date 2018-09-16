@@ -36,7 +36,7 @@ $ truffle migrate
 
 ## Tests
 
-For testing a state machine for "pass the ball" game is defined.
+For testing, a state machine for "pass the ball" game is defined.
 ![pass the ball state machine](https://raw.githubusercontent.com/dglowinski/state-machine/master/FSM.png)
 
 There are 3 players who pass a ball between themselves. Everyone has to play and the game ends after 5 blocks.
