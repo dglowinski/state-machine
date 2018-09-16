@@ -1,8 +1,6 @@
 const assert = require('assert')
 const assertRevert = require('./helpers/assertRevert')
-const { advanceToBlock } = require('./helpers/advanceToBlock')
 const Web3Js = require('web3');
-require('chai').should()
 
 const Web3 = new Web3Js(new Web3Js.providers.HttpProvider('http://127.0.0.1:8545'))
 const StateMachine = artifacts.require('./StateMachine.sol')
@@ -13,7 +11,7 @@ function getSig(instance, method) {
   return instance.methods[method]().encodeABI();
 }
 
-contract('StateMachine', ([owner]) => {
+contract('StateMachine', () => {
 
   beforeEach(async () => {
     this.stateMachine = await StateMachine.new()
@@ -44,6 +42,17 @@ contract('StateMachine', ([owner]) => {
     }
 
     await this.stateMachine.addTransition(5, "startGame", 0, "", 0, "", 1, false);
+  })
+
+  it('can delete state', async () => {
+    await this.stateMachine.deleteState(5)
+    const state = await this.stateMachine.states(5)
+    assert.equal(state.name, undefined)
+  })
+
+  it('can delete transition', async () => {
+    await this.stateMachine.deleteTransition(1, "startGame")
+    assertRevert(this.stateMachine.transition("startGame"))
   })
 
   it('is in starting state', async () => {

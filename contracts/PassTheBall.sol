@@ -6,8 +6,8 @@ contract PassTheBall is StateMachineStorage {
     
     uint256 internal constant gameDuration = 5;
 
+    //name spaced storage slots
     bytes32 internal constant startBlockSlot = keccak256("ptb_startBlock");
-
     bytes32 internal constant passesASlot = keccak256("ptb_passesA");
     bytes32 internal constant passesBSlot = keccak256("ptb_passesB");
     bytes32 internal constant passesCSlot = keccak256("ptb_passesC");

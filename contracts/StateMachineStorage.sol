@@ -1,7 +1,11 @@
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./openzeppelin/Ownable.sol";
 
+/**
+ * @title StateMachineStorage
+ * @dev Contract defines storage structure of the state machine
+ */
 contract StateMachineStorage is Ownable {
     struct Func {
         address contractAddress;
