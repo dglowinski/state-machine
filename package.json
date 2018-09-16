@@ -1,0 +1,35 @@
+{
+  "name": "state-machine",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "truffle test",
+    "precommit": "lint-staged",
+    "coverage": "solidity-coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dglowinski/state-machine.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dglowinski/state-machine/issues"
+  },
+  "homepage": "https://github.com/dglowinski/state-machine#readme",
+  "devDependencies": {
+    "lint-staged": "^7.2.2",
+    "solidity-coverage": "^0.5.11",
+    "web3": "^1.0.0-beta.36"
+  },
+  "lint-staged": {
+    "*.sol": [
+      "solium -f",
+      "git add"
+    ]
+  }
+}
