@@ -32,7 +32,7 @@ contract PassTheBall is StateMachineStorage {
     }
     
     function passToC() public {
-        setVar(passesBSlot, getVar(passesBSlot) + 1);
+        setVar(passesCSlot, getVar(passesCSlot) + 1);
     }
 
     //conditions
