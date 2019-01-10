@@ -1,6 +1,5 @@
-const StateMachine = artifacts.require("./StateMachine.sol");
-const PassTheBall = artifacts.require("./PassTheBall.sol");
+const Order = artifacts.require("./Order.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy([StateMachine, PassTheBall]);
+  deployer.deploy(Order, [["Ordered", "Deployed"], ["a", "b"]]);
 };

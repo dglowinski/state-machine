@@ -32,5 +32,9 @@
       "solium -f",
       "git add"
     ]
+  },
+  "dependencies": {
+    "ganache-cli": "^6.2.5",
+    "truffle": "^4.1.15"
   }
 }
