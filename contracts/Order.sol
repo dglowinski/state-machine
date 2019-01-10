@@ -1,5 +1,4 @@
 pragma solidity ^0.4.25;
-pragma experimental ABIEncoderV2;
 
 import "./StateMachineLib.sol";
 
@@ -13,9 +12,9 @@ contract Order  {
 
     constructor(
         uint[] counts,
-        string[] names,
+        string names,
         address[] addresses,
-        bytes[] callData,
+        string callData,
         bool[] isDelegatecall
     ) {
         stateMachine.setupStatesAndTransitions(counts, names, addresses, callData, isDelegatecall);

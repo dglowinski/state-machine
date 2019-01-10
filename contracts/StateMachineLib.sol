@@ -1,11 +1,13 @@
 pragma solidity ^0.4.25;
 
-
+import "./StringsLib.sol";
 /**
  * @title StateMachineLib
  * @dev Contract defines storage structure and logic of a generic state machine
  */
 library StateMachineLib {
+    using StringsLib for *;
+
     struct Callback {
         address contractAddress;
         bytes callData;
@@ -156,16 +158,28 @@ library StateMachineLib {
     function setupStatesAndTransitions(
         Data storage self,
         uint[] _counts,
-        string[] _names,
+        string _names,
         address[] _addresses,
-        bytes[] _callData,
+        string _callData,
         bool[] _isDelegatecall
     ) 
         internal 
     {
-        setupStates(self, _counts[0], _names, _addresses, _callData, _isDelegatecall);
-        setupTransitions(self, _counts[0], _counts[1], _names, _addresses, _callData, _isDelegatecall);
-        
+        string memory delimString = ".";
+        var delim = delimString.toSlice();
+        var namesSlice = _names.toSlice();
+        var namesArray = new string[](namesSlice.count(delim) + 1);
+        for(uint i = 0; i < namesArray.length; i++) {
+            namesArray[i] = namesSlice.split(delim).toString();
+        }
+        var callDataSlice = _callData.toSlice();
+        var callDataArray = new bytes[](callDataSlice.count(delim) + 1);
+        for(i = 0; i < callDataArray.length; i++) {
+            callDataArray[i] = bytes(callDataSlice.split(delim).toString());
+        }
+        setupStates(self, _counts[0], namesArray, _addresses, callDataArray, _isDelegatecall);
+        setupTransitions(self, _counts[0], _counts[1], namesArray, _addresses, callDataArray, _isDelegatecall);
+
     }
 
     function setupStates(
@@ -179,7 +193,6 @@ library StateMachineLib {
         internal
     {
         string memory name;
-        address contractAddress;
         Callback memory callback1;
         Callback memory callback2;
 
@@ -210,7 +223,6 @@ library StateMachineLib {
         internal
     {
         string memory name;
-        address contractAddress;
         Callback memory callback1;
         Callback memory callback2;
         uint pnt;
