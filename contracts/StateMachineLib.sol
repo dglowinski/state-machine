@@ -152,7 +152,7 @@ library StateMachineLib {
         deleteFromArray(self.states[_state].transitionKeys, _name);
     }
 
-
+    //TODO refactor
     function setupStatesAndTransitions(
         Data storage self,
         uint[] _counts,
@@ -163,15 +163,26 @@ library StateMachineLib {
     ) 
         internal 
     {
+        setupStates(self, _counts[0], _names, _addresses, _callData, _isDelegatecall);
+        setupTransitions(self, _counts[0], _counts[1], _names, _addresses, _callData, _isDelegatecall);
+    }
+
+    function setupStates(
+        Data storage self,
+        uint _statesCount,
+        string[] _names,
+        address[] _addresses,
+        bytes[] _callData,
+        bool[] _isDelegatecall
+    )
+        internal
+    {
         string memory name;
         address contractAddress;
-        bytes memory callData;
-        string memory fromState;
-        string memory toState;
         Callback memory callback1;
         Callback memory callback2;
 
-        for(uint i = 0; i < _counts[0]; i++) {
+        for(uint i = 0; i < _statesCount; i++) {
             name = _names[i];
             callback1.contractAddress = _addresses[i * 2];
             callback1.callData = _callData[i * 2];
@@ -184,23 +195,42 @@ library StateMachineLib {
             addState(self, name, callback1, callback2);
         }
 
-        for(i = 0; i < _counts[1]; i++) {
-            name = _names[_counts[0] + i];
-            fromState = _names[_counts[0] + _counts[1] + 2 * i];
-            toState = _names[_counts[0] + _counts[1] + 2 * i + 1];
-
-            callback1.contractAddress = _addresses[2 * _counts[0] + 2 * i];
-            callback1.callData = _callData[2 * _counts[0] + 2 * i];
-            callback1.isDelegatecall = _isDelegatecall[2 * _counts[0] + 2 * i];
-
-            callback2.contractAddress = _addresses[2 * _counts[0] + 2 * i + 1];
-            callback2.callData = _callData[2 * _counts[0] + 2 * i + 1];
-            callback2.isDelegatecall = _isDelegatecall[2 * _counts[0] + 2 * i + 1];
-
-            addTransition(self, name, fromState, toState, callback1, callback2);
-        }
     }
 
+    function setupTransitions(
+        Data storage self,
+        uint _statesCount,
+        uint _transitionsCount,
+        string[] _names,
+        address[] _addresses,
+        bytes[] _callData,
+        bool[] _isDelegatecall
+    )
+        internal
+    {
+        string memory name;
+        address contractAddress;
+        Callback memory callback1;
+        Callback memory callback2;
+        uint pnt;
+        uint pnt1;
+
+        for(uint i = 0; i < _transitionsCount; i++) {
+            name = _names[_statesCount + i];
+            pnt = 2 * _statesCount + 2 * i;
+            callback1.contractAddress = _addresses[pnt];
+            callback1.callData = _callData[pnt];
+            callback1.isDelegatecall = _isDelegatecall[pnt];
+
+            pnt++;
+            callback2.contractAddress = _addresses[pnt];
+            callback2.callData = _callData[pnt];
+            callback2.isDelegatecall = _isDelegatecall[pnt];
+            pnt1 = _statesCount + _transitionsCount + 2 * i + 1;
+
+            addTransition(self, name, _names[pnt - 1], _names[pnt1], callback1, callback2);
+        }
+    }
     /**
     * @dev Perform state transition
     * @return true if transition was successful

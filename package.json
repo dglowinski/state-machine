@@ -8,7 +8,6 @@
   },
   "scripts": {
     "test": "truffle test",
-    "precommit": "lint-staged",
     "coverage": "solidity-coverage"
   },
   "repository": {
