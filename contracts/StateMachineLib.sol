@@ -165,6 +165,7 @@ library StateMachineLib {
     {
         setupStates(self, _counts[0], _names, _addresses, _callData, _isDelegatecall);
         setupTransitions(self, _counts[0], _counts[1], _names, _addresses, _callData, _isDelegatecall);
+        
     }
 
     function setupStates(
