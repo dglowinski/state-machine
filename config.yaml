@@ -1,0 +1,145 @@
+StateMachines:
+  - type: Orders
+    name: "OrderStateMachine"
+    spec:
+      States:
+        - name: "Ordered"
+        - name: "Deployed and Operational"
+          entryAction: pricing
+            pricingMechanism: "OperationsFee"
+            attribute: serviceLevel
+            action: incrementCount
+          exitAction: pricing
+            pricingMechanism: "OperationsFee"
+            attribute: serviceLevel
+            action: decrementCount
+        - name: "Decomission Requested"
+        - name: "Decomissioned"
+        - name: "Disputed"
+          type: dispute
+            States:
+              - name: "Proposed"
+              - name: "Accepted"
+                entryAction:
+                  - type: setters
+                    - updateCountry
+                    - updateServiceLevel....
+                  - type: transition 
+                      transition: "Resolve Dispute"
+            Transitions:
+              - name: "Accept"
+                start: "Proposed"
+                end: "Accepted"
+                restricted: counterParty
+                  roles:
+                    - All
+        - name: "Discarded"
+      Transitions:
+        - name: "Order"
+          start: "init"
+          end: "Ordered"
+          restricted: org
+            orgAuth: "supplier"
+              roles:
+                - All
+        - name: "Deploy"
+          start: "Ordered"
+          end: "Deployed and Operational"
+          restricted: org
+            orgAuth: "supplier"
+              roles:
+                - All
+          triggers: 
+            - type: pricing
+                pricingMechanism: "installFee"
+                attribute: country
+                action: incrementCount
+        - name: "Request Decomissioning"
+          start: "Deployed and Operational"
+          end: "Decomission Requested"
+          restricted: org
+            orgAuth: "client"
+              roles:
+                - All
+        - name: "Decomission"
+          start: "Decomission Requested"
+          end: "Decomissioned"
+          restricted: org
+            orgAuth: "supplier"
+              roles:
+                - All
+        - name: "Dispute"
+          start: "All"
+          end: "Disputed"
+          restricted: org
+            orgAuth: "all" 
+        - name: "Resolve Dispute"
+          start: "Disputed"
+          end: "All"
+          restricted: internal
+        - name: "Discard"
+          start: "Disputed"
+          end: "Discarded"
+          restricted: internal
+  - name: "CatalogueItemStateMachine"
+    type: Mutual
+    instances:
+      - "VCC_Virtual_Server.xls"
+      - "VCC_Oracle_DB.xls"
+
+RBAC:
+  orgs: 
+  - name: Novartis
+    roles:
+      - name: "Admin"
+        rights:
+          - contract: "catalogueItem"
+            functions:
+              - pushNewOrder
+              - createCatalogItem
+      - name: "OrderManager"
+        rights:
+          - contract: "catalogueItem"
+            functions:
+              - pushNewOrder
+              - createCatalogItem
+    users:
+      - name: "Sergio"
+        OID: "0b1xjan2"
+        email: "sergio@konfid.io"
+        ethAddress: "0x321"
+        roles:
+          - Admin
+          - OrderManager
+      - name: "Bot0"
+        OID: "0b1xjan2"
+        email: "sergio@konfid.io"
+        ethAddress: "0x321"
+        roles:
+          - Admin
+          - OrderManager
+      - name: "Galen"
+        OID: "08xjan2"
+        email: "galen@konfid.io"
+        ethAddress: "0xABC"
+        roles:
+          - Admin
+          - OrderManager
+          - FinanceManager
+
+Scenario:
+  CatalogueItems:
+    - name: "VCC Virutal Server"
+      counts:
+        ordered: 25
+        deployed: 15
+        decomReq: 10
+        decom: 5
+        disputed: 3
+    - name: "VCC Virutal Server"
+      counts:
+        ordered: 25
+        deployed: 15
+        decomReq: 10
+        decom: 5
+        disputed: 3

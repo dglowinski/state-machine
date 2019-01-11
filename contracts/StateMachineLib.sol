@@ -52,6 +52,10 @@ library StateMachineLib {
         _;
     }
 
+    event TestBytes(bytes Bytes);
+    event TestBytes1(bytes1 Bytes);
+    event TestUint(uint256 Uint);
+    
     function getAllStates(Data storage self) 
         internal
         view
@@ -154,8 +158,8 @@ library StateMachineLib {
         deleteFromArray(self.states[_state].transitionKeys, _name);
     }
 
-    //TODO refactor
-    function setupStatesAndTransitions(
+    //TODO refactor, readme about data layout in call
+    function setupStateMachine(
         Data storage self,
         uint[] _counts,
         string _names,
@@ -165,7 +169,7 @@ library StateMachineLib {
     ) 
         internal 
     {
-        string memory delimString = ".";
+        string memory delimString = ";";
         var delim = delimString.toSlice();
         var namesSlice = _names.toSlice();
         var namesArray = new string[](namesSlice.count(delim) + 1);
@@ -175,11 +179,44 @@ library StateMachineLib {
         var callDataSlice = _callData.toSlice();
         var callDataArray = new bytes[](callDataSlice.count(delim) + 1);
         for(i = 0; i < callDataArray.length; i++) {
-            callDataArray[i] = bytes(callDataSlice.split(delim).toString());
+            callDataArray[i] = convertUtf8StringToBytes(callDataSlice.split(delim).toString());
         }
         setupStates(self, _counts[0], namesArray, _addresses, callDataArray, _isDelegatecall);
         setupTransitions(self, _counts[0], _counts[1], namesArray, _addresses, callDataArray, _isDelegatecall);
 
+    }
+
+    function convertUtf8StringToBytes(string memory str) 
+        public 
+        pure 
+        returns (bytes) 
+    {    
+        bytes memory input = bytes(str);
+        bytes memory ret = new bytes(input.length/2);
+        uint index = 0;
+        for (uint i = 0; i < input.length; i += 2) {
+            ret[index] = convertUtf8CharToByte(input[i]) << 4;
+            ret[index] = ret[index] | convertUtf8CharToByte(input[i+1]);
+            index++;
+        }
+        return ret;
+    }
+    
+    function convertUtf8CharToByte(bytes1 char) 
+        internal 
+        pure 
+        returns (bytes1) 
+    {
+        if(char <= 0x39) {
+            return char ^ 0x30;
+        } else {
+            if(char == 0x61) return 0x0a;
+            if(char == 0x62) return 0x0b;
+            if(char == 0x63) return 0x0c;
+            if(char == 0x64) return 0x0d;
+            if(char == 0x65) return 0x0e;
+            if(char == 0x66) return 0x0f;
+        }
     }
 
     function setupStates(
@@ -192,21 +229,13 @@ library StateMachineLib {
     )
         internal
     {
-        string memory name;
-        Callback memory callback1;
-        Callback memory callback2;
-
         for(uint i = 0; i < _statesCount; i++) {
-            name = _names[i];
-            callback1.contractAddress = _addresses[i * 2];
-            callback1.callData = _callData[i * 2];
-            callback1.isDelegatecall = _isDelegatecall[i * 2];
-
-            callback2.contractAddress = _addresses[i * 2 + 1];
-            callback2.callData = _callData[i * 2 + 1];
-            callback2.isDelegatecall = _isDelegatecall[i * 2 + 1];
-
-            addState(self, name, callback1, callback2);
+            addState(
+                self, 
+                _names[i], 
+                createCallback(_addresses[i * 2], _callData[i * 2], _isDelegatecall[i * 2]), 
+                createCallback(_addresses[i * 2 + 1], _callData[i * 2 + 1], _isDelegatecall[i * 2 + 1])
+            );
         }
 
     }
@@ -222,27 +251,34 @@ library StateMachineLib {
     )
         internal
     {
-        string memory name;
-        Callback memory callback1;
-        Callback memory callback2;
-        uint pnt;
-        uint pnt1;
+        uint callbackIndex;
+        uint nameIndex;
 
         for(uint i = 0; i < _transitionsCount; i++) {
-            name = _names[_statesCount + i];
-            pnt = 2 * _statesCount + 2 * i;
-            callback1.contractAddress = _addresses[pnt];
-            callback1.callData = _callData[pnt];
-            callback1.isDelegatecall = _isDelegatecall[pnt];
+            callbackIndex = 2 * _statesCount + 2 * i;
+            nameIndex = _statesCount + _transitionsCount + 2 * i;
 
-            pnt++;
-            callback2.contractAddress = _addresses[pnt];
-            callback2.callData = _callData[pnt];
-            callback2.isDelegatecall = _isDelegatecall[pnt];
-            pnt1 = _statesCount + _transitionsCount + 2 * i + 1;
-
-            addTransition(self, name, _names[pnt - 1], _names[pnt1], callback1, callback2);
+            addTransition(
+                self, 
+                _names[_statesCount + i], 
+                _names[nameIndex], 
+                _names[nameIndex + 1], 
+                createCallback(_addresses[callbackIndex], _callData[callbackIndex], _isDelegatecall[callbackIndex]), 
+                createCallback(_addresses[callbackIndex + 1], _callData[callbackIndex + 1], _isDelegatecall[callbackIndex + 1])
+            );
         }
+    }
+
+    // TODO: if address 0 and calldata valid -> address = this
+    function createCallback(address _contractAddress, bytes _callData, bool _isDelegatecall) 
+        internal
+        returns (Callback memory)
+    {
+        return Callback({
+            contractAddress: _callData.length >= 4 && _contractAddress == address(0) ? address(this) : _contractAddress,
+            callData: _callData,
+            isDelegatecall: _isDelegatecall
+        });
     }
     /**
     * @dev Perform state transition
@@ -262,6 +298,12 @@ library StateMachineLib {
             return false;
         }
 
+        string memory str = "a"; //0x9256853d
+
+        //bytes1 conv = convertUtf8ToBytes(str);
+        emit TestBytes(trans.trigger.callData);
+        emit TestUint(bytes(str).length);
+
         execCallback(self.states[self.state].onLeave);
         execCallback(trans.trigger);
 
@@ -270,7 +312,6 @@ library StateMachineLib {
 
         return true;
     }
-
 
 
     ///@dev Execute call or delegate call

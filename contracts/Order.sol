@@ -10,6 +10,10 @@ contract Order  {
 
     StateMachineLib.Data stateMachine;
 
+    event TestBytes(bytes Bytes);
+    event TestBytes1(bytes1 Bytes);
+    event TestUint(uint256 Uint);
+
     constructor(
         uint[] counts,
         string names,
@@ -17,14 +21,18 @@ contract Order  {
         string callData,
         bool[] isDelegatecall
     ) {
-        stateMachine.setupStatesAndTransitions(counts, names, addresses, callData, isDelegatecall);
+        stateMachine.setupStateMachine(counts, names, addresses, callData, isDelegatecall);
+    }
+
+    function transition(string transitionName) public {
+        stateMachine.transition(transitionName);
     }
 
     function onDeployed() public {
         deployedCount++;
     }
 
-    function onTransaction(uint val) {
+    function onTransition(uint val) public {
         transitionVal = val;
     }
     
