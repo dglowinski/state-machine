@@ -51,12 +51,12 @@ library StateMachineLib {
         );
         _;
     }
-
-    event TestBytes(bytes Bytes);
-    event TestBytes1(bytes1 Bytes);
-    event TestUint(uint256 Uint);
-    event TestBool(bool Bool);
     
+    event _INSERT_STATE(address contract_address, string name);
+    event _DELETE_STATE(address contract_address, string name);
+    event _INSERT_TRANSITION(address contract_address, string name, string from_state, string to_state);
+    event _DELETE_TRANSITION(address contract_address, string name);
+
     function getAllStates(Data storage self) 
         internal
         view
@@ -65,7 +65,7 @@ library StateMachineLib {
         return self.stateKeys;
     }
     
-    function getAllStateTransitions(Data storage self, string _state) 
+    function getAllTransitionsFromState(Data storage self, string _state) 
         internal
         view
         onlyIfStateExists(self, _state)
@@ -94,6 +94,8 @@ library StateMachineLib {
         self.states[_name].transitionKeys.push(_name);
 
         if(bytes(self.state).length == 0) self.state = _name;
+
+        emit _INSERT_STATE(address(this), _name);
     }
 
     ///@dev Delete a state by name, unless it's current state
@@ -108,6 +110,8 @@ library StateMachineLib {
         
         delete self.states[_name];
         deleteFromArray(self.stateKeys, _name);
+    
+        emit _DELETE_STATE(address(this), _name);
     }
 
 
@@ -144,6 +148,7 @@ library StateMachineLib {
         });
 
         self.states[_fromState].transitionKeys.push(_name);
+        emit _INSERT_TRANSITION(address(this), _name, _fromState, _nextState);
     }
 
     ///@dev Delete transition by state and name
@@ -157,6 +162,8 @@ library StateMachineLib {
         );
         delete self.states[_state].transitions[_name];
         deleteFromArray(self.states[_state].transitionKeys, _name);
+
+        emit _DELETE_TRANSITION(address(this), _name);
     }
 
     //TODO refactor, readme about data layout in call
