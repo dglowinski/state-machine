@@ -1,0 +1,99 @@
+states:
+  - name: Ordered
+    onLeave:
+      function: onLeaveOrdered
+      contract: Order
+      args:
+        - 1
+      isDelegatecall: true
+    transitions:
+      - name: ordered_to_deployed
+        nextState: Deployed and operational
+        guard: 
+          function: canTransition
+          contract: Order
+          args:
+            - Ordered
+            - Deployed
+          isDelegatecall: true
+        trigger:
+          function: onTransition
+          contract: Order
+          args:
+            - Ordered
+            - Deployed
+          isDelegatecall: true
+      - name: ordered_to_disputed
+        nextState: Disputed
+        guard: 
+          function: canTransition
+          contract: Order
+          args:
+            - Ordered
+            - Disputed
+          isDelegatecall: true
+        trigger:
+          function: onTransition
+          contract: Order
+          args:
+            - Ordered
+            - Disputed
+          isDelegatecall: true
+  - name: Deployed and operational
+    onEnter: 
+      function: chargeFees
+      contract: Pricing
+      isDelegatecall: false
+    onLeave:
+      function: onLeaveDisputed
+      contract: Order
+      isDelegatecall: true
+    transitions:
+      - name: deployed_to_disputed
+        nextState: Disputed
+        guard: 
+          function: canTransition
+          contract: Order
+          args:
+            - Deployed
+            - Disputed
+          isDelegatecall: true
+        trigger:
+          function: onTransition
+          contract: Order
+          args:
+            - Deployed
+            - Disputed
+          isDelegatecall: true
+  - name: Disputed
+    onEnter: 
+      function: toggleDisputed
+      contract: Order
+    onLeave: 
+      function: toggleDisputed
+      contract: Order
+    transitions:
+      - name: disputed_to_ordered
+        nextState: Ordered
+        guard: 
+          function: isDisputeApproved
+          contract: Order
+          isDelegatecall: true
+        trigger:
+          function: onDisputeResolved
+          contract: Order
+          args:
+            - Ordered
+          isDelegatecall: true
+      - name: disputed_to_deployed
+        nextState: Deployed and operational
+        guard: 
+          function: isDisputeApproved
+          contract: Order
+          isDelegatecall: true
+        trigger:
+          function: onDisputeResolved
+          contract: Order
+          args:
+            - Deployed
+          isDelegatecall: true
