@@ -126,11 +126,14 @@ contract('Order', () => {
     assert.equal(operationalCount.toNumber(), 1, "Incorrect number of operational orders")
   })
 
-  it('can transition to deployed', async () => {
+  it('can transition to disputed', async () => {
     await this.order.transition("deployed_to_disputed")
 
     const state = await this.order.getCurrentState();
     assert.equal(state, "Disputed", "State is incorrect")
+
+    const installationsCount = await this.pricing.installationsCount()
+    assert.equal(installationsCount.toNumber(), 1, "Incorrect number of installations")
 
     const operationalCount = await this.pricing.operationalCount()
     assert.equal(operationalCount.toNumber(), 0, "Incorrect number of operational orders") 
@@ -139,4 +142,24 @@ contract('Order', () => {
     assert.ok(isDisputed, "Order should be disputed")
   })
 
+  it('can\'t transition out of disputed when dispute not approved', async () => {
+    await this.order.transition("disputed_to_ordered")
+
+    const state = await this.order.getCurrentState();
+    assert.equal(state, "Disputed", "State is incorrect")
+  })
+
+  it('can transition out of disputed after dispute is approved', async () => {
+    await this.order.approveDispute("disputed_to_ordered")
+
+    const state = await this.order.getCurrentState();
+    assert.equal(state, "Ordered", "State is incorrect")
+  })
+
+  it('can\'t transition when guard prohibits it', async () => {
+    await this.order.transition("ordered_to_disputed")
+
+    const state = await this.order.getCurrentState();
+    assert.equal(state, "Ordered", "State is incorrect")
+  })
 })

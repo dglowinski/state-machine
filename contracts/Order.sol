@@ -31,7 +31,9 @@ contract Order  {
         string callData,
         bool[] isDelegatecall,
         address _pricingAddress
-    ) {
+    ) 
+        public
+    {
         pricingAddress = _pricingAddress;
         stateMachine.setupStateMachine(counts, names, addresses, callData, isDelegatecall);
     }
@@ -48,8 +50,9 @@ contract Order  {
         onLeaveOrderedVal = val;
     }
 
-    function canTransition(string from, string to) public {
-        require(!(keccak256(from) == keccak256("Ordered") && keccak256(to) == keccak256("Disputed")), "Can't do this transition");
+    function canTransition(string from, string to) public pure {
+        require(!(keccak256(abi.encodePacked(from)) == keccak256(abi.encodePacked("Ordered")) 
+            && keccak256(abi.encodePacked(to)) == keccak256(abi.encodePacked("Disputed"))), "Can't do this transition");
     }
     
     function onTransition(string from, string to) public {
@@ -66,12 +69,12 @@ contract Order  {
         transition(_transition);
     }
 
-    function isDisputeApproved() public {
+    function isDisputeApproved() public view {
         require(disputeApproved, "Dispute is not approved");
     }
 
     function onDisputeResolved(string nextState) public {
-        if(keccak256(nextState) == keccak256("Deployed")) {
+        if(keccak256(abi.encodePacked(nextState)) == keccak256(abi.encodePacked("Deployed"))) {
             Pricing(pricingAddress).startOperationalFee();
         }
     }

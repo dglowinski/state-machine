@@ -102,7 +102,7 @@ library StateMachineLib {
         onlyIfStateExists(self, _name) 
     {
         require(
-            keccak256(self.state) != keccak256(_name), 
+            keccak256(abi.encodePacked(self.state)) != keccak256(abi.encodePacked(_name)), 
             "StateMachineLib:deleteState - Can't delete current state"
         );
         
@@ -171,53 +171,21 @@ library StateMachineLib {
         internal 
     {
         string memory delimString = ";";
-        var delim = delimString.toSlice();
-        var namesSlice = _names.toSlice();
-        var namesArray = new string[](namesSlice.count(delim) + 1);
+        StringsLib.slice memory delim = delimString.toSlice();
+        StringsLib.slice memory namesSlice = _names.toSlice();
+        string[] memory namesArray = new string[](namesSlice.count(delim) + 1);
         for(uint i = 0; i < namesArray.length; i++) {
             namesArray[i] = namesSlice.split(delim).toString();
         }
-        var callDataSlice = _callData.toSlice();
-        var callDataArray = new bytes[](callDataSlice.count(delim) + 1);
+
+        StringsLib.slice memory callDataSlice = _callData.toSlice();
+        bytes[] memory callDataArray = new bytes[](callDataSlice.count(delim) + 1);
         for(i = 0; i < callDataArray.length; i++) {
             callDataArray[i] = convertUtf8StringToBytes(callDataSlice.split(delim).toString());
         }
+
         setupStates(self, _counts[0], namesArray, _addresses, callDataArray, _isDelegatecall);
         setupTransitions(self, _counts[0], _counts[1], namesArray, _addresses, callDataArray, _isDelegatecall);
-
-    }
-
-    function convertUtf8StringToBytes(string memory str) 
-        public 
-        pure 
-        returns (bytes) 
-    {    
-        bytes memory input = bytes(str);
-        bytes memory ret = new bytes(input.length/2);
-        uint index = 0;
-        for (uint i = 0; i < input.length; i += 2) {
-            ret[index] = convertUtf8CharToByte(input[i]) << 4;
-            ret[index] = ret[index] | convertUtf8CharToByte(input[i+1]);
-            index++;
-        }
-        return ret;
-    }
-    
-    function convertUtf8CharToByte(bytes1 char) 
-        internal 
-        pure 
-        returns (bytes1) 
-    {
-        if(char <= 0x39) {
-            return char ^ 0x30;
-        } else {
-            if(char == 0x61) return 0x0a;
-            if(char == 0x62) return 0x0b;
-            if(char == 0x63) return 0x0c;
-            if(char == 0x64) return 0x0d;
-            if(char == 0x65) return 0x0e;
-            if(char == 0x66) return 0x0f;
-        }
     }
 
     function setupStates(
@@ -270,17 +238,6 @@ library StateMachineLib {
         }
     }
 
-    // TODO: if address 0 and calldata valid -> address = this
-    function createCallback(address _contractAddress, bytes _callData, bool _isDelegatecall) 
-        internal
-        returns (Callback memory)
-    {
-        return Callback({
-            contractAddress: _callData.length >= 4 && _contractAddress == address(0) ? address(this) : _contractAddress,
-            callData: _callData,
-            isDelegatecall: _isDelegatecall
-        });
-    }
     /**
     * @dev Perform state transition
     * @return true if transition was successful
@@ -304,12 +261,24 @@ library StateMachineLib {
         execCallback(trans.trigger);
 
         self.state = trans.nextState;
-        
+
         execCallback(self.states[self.state].onEnter);
 
         return true;
     }
 
+    // TODO: if address 0 and calldata valid -> address = this
+    function createCallback(address _contractAddress, bytes _callData, bool _isDelegatecall) 
+        internal
+        view
+        returns (Callback memory)
+    {
+        return Callback({
+            contractAddress: _callData.length >= 4 && _contractAddress == address(0) ? address(this) : _contractAddress,
+            callData: _callData,
+            isDelegatecall: _isDelegatecall
+        });
+    }
 
     ///@dev Execute call or delegate call
     ///@return true if the call did not revert 
@@ -323,16 +292,48 @@ library StateMachineLib {
             : _callback.contractAddress.call(_callback.callData);
     }
 
-
     function deleteFromArray(string[] storage _arr, string _item) 
         internal
     {
         for(uint256 i = 0; i < _arr.length; i++) {
-            if(keccak256(_arr[i]) == keccak256(_item)) {
+            if(keccak256(abi.encodePacked(_arr[i])) == keccak256(abi.encodePacked(_item))) {
                 _arr[i] = _arr[_arr.length - 1];
                 _arr.length--;
                 return;
             }
+        }
+    }
+
+    function convertUtf8StringToBytes(string memory str) 
+        internal 
+        pure 
+        returns (bytes) 
+    {    
+        bytes memory input = bytes(str);
+        bytes memory ret = new bytes(input.length/2);
+        uint index = 0;
+        for (uint i = 0; i < input.length; i += 2) {
+            ret[index] = convertUtf8CharToByte(input[i]) << 4;
+            ret[index] = ret[index] | convertUtf8CharToByte(input[i+1]);
+            index++;
+        }
+        return ret;
+    }
+    
+    function convertUtf8CharToByte(bytes1 char) 
+        internal 
+        pure 
+        returns (bytes1) 
+    {
+        if(char <= 0x39) {
+            return char ^ 0x30;
+        } else {
+            if(char == 0x61) return 0x0a;
+            if(char == 0x62) return 0x0b;
+            if(char == 0x63) return 0x0c;
+            if(char == 0x64) return 0x0d;
+            if(char == 0x65) return 0x0e;
+            if(char == 0x66) return 0x0f;
         }
     }
 }
