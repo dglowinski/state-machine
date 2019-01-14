@@ -55,6 +55,7 @@ library StateMachineLib {
     event TestBytes(bytes Bytes);
     event TestBytes1(bytes1 Bytes);
     event TestUint(uint256 Uint);
+    event TestBool(bool Bool);
     
     function getAllStates(Data storage self) 
         internal
@@ -293,21 +294,17 @@ library StateMachineLib {
             "StateMachineLib:transition - Transition doesn't exist in current state"
         );
         Transition storage trans = self.states[self.state].transitions[_name];
-
+        
         if(!execCallback(trans.guard)) {
             return false;
         }
-
-        string memory str = "a"; //0x9256853d
-
-        //bytes1 conv = convertUtf8ToBytes(str);
-        emit TestBytes(trans.trigger.callData);
-        emit TestUint(bytes(str).length);
-
+       
         execCallback(self.states[self.state].onLeave);
+        
         execCallback(trans.trigger);
 
         self.state = trans.nextState;
+        
         execCallback(self.states[self.state].onEnter);
 
         return true;

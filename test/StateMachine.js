@@ -1,19 +1,33 @@
 const assert = require('assert')
 const assertRevert = require('./helpers/assertRevert')
 const Web3Js = require('web3');
+const YAML = require("yamljs")
+const fs   = require('fs');
 
-const Web3 = new Web3Js(new Web3Js.providers.HttpProvider('http://127.0.0.1:8545'))
+const Web3 = new Web3Js(new Web3Js.providers.HttpProvider())
 const Order = artifacts.require('./Order.sol')
 const Pricing = artifacts.require('./Pricing.sol')
 
-const YAML = require("yamljs")
+Order.defaults({gas: 10000000})
+Pricing.defaults({gas: 10000000})
 
-const stateMachineConfig = YAML.load("test/orderConfig.yaml")
+
+
+function loadAndParseConfig(path, contracts) {
+  let configFile = fs.readFileSync(path, 'utf8')
+
+  Object.entries(contracts).forEach(([contract, address]) => {
+    const regex = new RegExp(`<<${contract}>>`, "g")
+    configFile = configFile.replace(regex, address)
+  })
+
+  return YAML.parse(configFile)
+}
 
 function getSig(callback, abis) {
   if(!callback) return ''
   const contract = new Web3.eth.Contract(abis[callback.contract], '0x'+'0'.repeat(40))
-  return contract.methods[callback.function](...(callback.args || [])).encodeABI();
+  return contract.methods[callback.function](...(callback.args || [])).encodeABI().substr(2);
 }
 
 //TODO: abi management
@@ -64,7 +78,7 @@ function packStateMachine(stateMachineConfig, abis) {
 
 contract('Order', () => {
 
-  beforeEach(async () => {
+  before(async () => {
 
     this.pricing = await Pricing.new()
 
@@ -72,34 +86,57 @@ contract('Order', () => {
       Order: Order.abi,
       Pricing: Pricing.abi
     }
-    const packedStateMachine = packStateMachine(stateMachineConfig, abis)
-    packedStateMachine.addresses[2] = this.pricing.address;
 
-    console.log('packedStateMachine: ', packedStateMachine);
+    const addresses = {
+      Pricing: this.pricing.address
+    }
+
+    const stateMachineConfig = loadAndParseConfig("test/orderConfig.yaml", addresses)
+    const packedStateMachine = packStateMachine(stateMachineConfig, abis)
 
     this.order = await Order.new(
-      packedStateMachine.counts, //[2, 1],
-      packedStateMachine.names, //"state1;state2;transition1;state1;state2",
-      packedStateMachine.addresses, //[0, 0, 0, 0, 0, 0],
-      packedStateMachine.callData, //';;;;;ecf36778000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000046475706100000000000000000000000000000000000000000000000000000000',
-      packedStateMachine.isDelegatecall, //[false,false,false,false,false,false]
+      packedStateMachine.counts, 
+      packedStateMachine.names, 
+      packedStateMachine.addresses, 
+      packedStateMachine.callData,
+      packedStateMachine.isDelegatecall, 
       this.pricing.address,
-      {gas: 900000000}
     ) 
-
-  //  const onTransitionSig = getSig(order, "onTransition", 10, "dupa")
-  //  console.log('onTransitionSig: ', onTransitionSig);
   })
 
+  it('can transition to deployed', async () => {
+    await this.order.transition("ordered_to_deployed")
 
-  it('can start the game again', async () => {
-    assert.ok(true)
-    // await this.order.transition("transition1")
-    // let res = await this.order.transitionVal();
+    const state = await this.order.getCurrentState();
+    assert.equal(state, "Deployed and operational", "State is incorrect")
 
-    // assert.equal(res.toNumber(), 10);
+    const checkVal = await this.order.onLeaveOrderedVal();
+    assert.equal(checkVal.toNumber(), 1, "onLeave value incorrect")
 
-    // res = await this.order.transitionStr();
-    // assert.equal(res, "dupa");
+    const lastTransitionFrom = await this.order.lastTransitionFrom()
+    const lastTransitionTo = await this.order.lastTransitionTo()
+
+    assert.equal(lastTransitionFrom, "Ordered")
+    assert.equal(lastTransitionTo, "Deployed")
+
+    const installationsCount = await this.pricing.installationsCount()
+    assert.equal(installationsCount.toNumber(), 1, "Incorrect number of installations")
+
+    const operationalCount = await this.pricing.operationalCount()
+    assert.equal(operationalCount.toNumber(), 1, "Incorrect number of operational orders")
   })
+
+  it('can transition to deployed', async () => {
+    await this.order.transition("deployed_to_disputed")
+
+    const state = await this.order.getCurrentState();
+    assert.equal(state, "Disputed", "State is incorrect")
+
+    const operationalCount = await this.pricing.operationalCount()
+    assert.equal(operationalCount.toNumber(), 0, "Incorrect number of operational orders") 
+    
+    const isDisputed = await this.order.isDisputed()
+    assert.ok(isDisputed, "Order should be disputed")
+  })
+
 })

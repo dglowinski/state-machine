@@ -43,28 +43,15 @@ states:
     onEnter: 
       function: chargeFees
       contract: Pricing
+      address: '<<Pricing>>'
       isDelegatecall: false
     onLeave:
-      function: onLeaveDisputed
+      function: onLeaveDeployed
       contract: Order
       isDelegatecall: true
     transitions:
       - name: deployed_to_disputed
         nextState: Disputed
-        guard: 
-          function: canTransition
-          contract: Order
-          args:
-            - Deployed
-            - Disputed
-          isDelegatecall: true
-        trigger:
-          function: onTransition
-          contract: Order
-          args:
-            - Deployed
-            - Disputed
-          isDelegatecall: true
   - name: Disputed
     onEnter: 
       function: toggleDisputed

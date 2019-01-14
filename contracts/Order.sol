@@ -7,7 +7,7 @@ contract Order  {
     using StateMachineLib for StateMachineLib.Data;
 
     uint public deployedCount = 0;
-    uint public onLeaveOrderedCount;
+    uint public onLeaveOrderedVal;
     string public lastTransitionFrom;
     string public lastTransitionTo;
     bool public isDisputed;
@@ -16,6 +16,13 @@ contract Order  {
     address internal pricingAddress;
 
     StateMachineLib.Data stateMachine;
+
+
+    event TestBytes(bytes Bytes);
+    event TestBytes1(bytes1 Bytes);
+    event TestUint(uint256 Uint);
+    event TestBool(bool Bool);
+    event TestOrdered();
 
     constructor(
         uint[] counts,
@@ -33,8 +40,12 @@ contract Order  {
         stateMachine.transition(transitionName);
     }
 
+    function getCurrentState() public view returns (string) {
+        return stateMachine.state;
+    }
+
     function onLeaveOrdered(uint256 val) public {
-        onLeaveOrderedCount += val;
+        onLeaveOrderedVal = val;
     }
 
     function canTransition(string from, string to) public {
@@ -65,8 +76,7 @@ contract Order  {
         }
     }
 
-    function onLeaveDisputed() public {
+    function onLeaveDeployed() public {
         Pricing(pricingAddress).stopOperationalFee();
-        disputeApproved = false;
     }
 }
